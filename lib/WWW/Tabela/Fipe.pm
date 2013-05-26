@@ -47,29 +47,56 @@ sub on_start {
   }
 }
 
+sub _headers {
+    my ( $self , $url, $form ) = @_; 
+    return {
+      'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Encoding' => 'gzip, deflate',
+      'Accept-Language' => 'en-US,en;q=0.5',
+      'Cache-Control'   => 'no-cache',
+      'Connection'      => 'keep-alive',
+      'Content-Length'  => length( POST('url...', [], Content => $form)->content ),
+      'Content-Type'    => 'application/x-www-form-urlencoded; charset=utf-8',
+      'DNT'             => '1',
+      'Host'            => 'www.fipe.org.br',
+      'Pragma'          => 'no-cache',
+      'Referer'         => $url,
+      'User-Agent'      => 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:20.0) Gecko/20100101 Firefox/20.0',
+      'X-MicrosoftAjax' => 'Delta=true',
+    };
+}
+
+sub _form {
+    my ( $self, $args ) = @_; 
+    return [
+      ScriptManager1      => $args->{ script_manager },
+      __ASYNCPOST         => 'true',
+      __EVENTARGUMENT     => '',
+      __EVENTTARGET       => $args->{ event_target },
+      __EVENTVALIDATION   => $args->{ event_validation },
+      __LASTFOCUS         => '',
+      __VIEWSTATE         => $args->{ viewstate },
+      ddlAnoValor         => ( !exists $args->{ano} ) ? 0 : $args->{ ano },
+      ddlMarca            => ( !exists $args->{marca} ) ? 0 : $args->{ marca },
+      ddlModelo           => ( !exists $args->{modelo} ) ? 0 : $args->{ modelo },
+      ddlTabelaReferencia => 154,
+      txtCodFipe          => '',
+    ];
+}
+
 sub search {
   my ( $self ) = @_;
-# warn $self->robot->useragent->content_type;
   my $marcas           = $self->tree->findnodes( '//select[@name="ddlMarca"]/option' );
   my $viewstate        = $self->tree->findnodes( '//form[@id="form1"]//input[@id="__VIEWSTATE"]' )->get_node->attr('value');
   my $event_validation = $self->tree->findnodes( '//form[@id="form1"]//input[@id="__EVENTVALIDATION"]' )->get_node->attr('value');
   foreach my $marca ( $marcas->get_nodelist ) {
-#   warn $marca->attr( 'value' );
-#   warn $marca->as_text;
-    my $form = [
-      ScriptManager1      => 'UdtMarca|ddlMarca',
-      __ASYNCPOST         => 'true',
-      __EVENTARGUMENT     => '',
-      __EVENTTARGET       => 'ddlMarca',
-      __EVENTVALIDATION   => $event_validation,
-      __LASTFOCUS         => '',
-      __VIEWSTATE         => $viewstate,
-      ddlAnoValor         => 0,
-      ddlMarca            => $marca->attr( 'value' ),
-      ddlModelo           => 0,
-      ddlTabelaReferencia => 154,
-      txtCodFipe          => '',
-    ];
+    my $form = $self->_form( {
+        script_manager => 'UdtMarca|ddlMarca',
+        event_target   => 'ddlMarca',
+        event_validation=> $event_validation,
+        viewstate       => $viewstate,
+        marca           => $marca->attr( 'value' ),
+    } );
     $self->prepend( busca_marca => 'url' , {
       passed_key_values => {
           marca     => $marca->as_text,
@@ -81,21 +108,7 @@ sub search {
         'POST',
         $self->robot->reader->passed_key_values->{ referer },
         {
-          headers => {
-            'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Encoding' => 'gzip, deflate',
-            'Accept-Language' => 'en-US,en;q=0.5',
-            'Cache-Control'   => 'no-cache',
-            'Connection'      => 'keep-alive',
-            'Content-Length'  => length( POST('url...', [], Content => $form)->content ),
-            'Content-Type'    => 'application/x-www-form-urlencoded; charset=utf-8',
-            'DNT'             => '1',
-            'Host'            => 'www.fipe.org.br',
-            'Pragma'          => 'no-cache',
-            'Referer'         => $self->robot->reader->passed_key_values->{ referer },
-            'User-Agent'      => 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:20.0) Gecko/20100101 Firefox/20.0',
-            'X-MicrosoftAjax' => 'Delta=true',
-          },
+          headers => $self->_headers( $self->robot->reader->passed_key_values->{ referer } , $form ),
           content => POST('url...', [], Content => $form)->content,
         }
       ]
@@ -105,13 +118,8 @@ sub search {
 
 sub busca_marca {
   my ( $self ) = @_; 
-# warn $self->robot->useragent->content_type;
   my ( $captura1, $viewstate )         = $self->robot->useragent->content =~ m/hiddenField\|__EVENTTARGET(.+)__VIEWSTATE\|([^\|]+)\|/g;
   my ( $captura_1, $event_validation ) = $self->robot->useragent->content =~ m/hiddenField\|__EVENTTARGET(.+)__EVENTVALIDATION\|([^\|]+)\|/g;
-# $self->viewstate( $viewstate );
-# $self->eventvalidation( $event_validation );
-# warn p $self->robot->useragent->request_headers;
-# warn p $self->robot->useragent->engine->ua;
   my $modelos = $self->tree->findnodes( '//select[@name="ddlModelo"]/option' );
   foreach my $modelo ( $modelos->get_nodelist ) {
 
@@ -124,43 +132,21 @@ sub busca_marca {
     $kv->{ marca }      = $self->robot->reader->passed_key_values->{ marca };
     $kv->{ tipo }       = $self->robot->reader->passed_key_values->{ tipo };
     $kv->{ referer }    = $self->robot->reader->passed_key_values->{ referer };
-#   warn p $kv;
-#   warn $self->robot->reader->passed_key_values->{ marca };
-    my $form = [
-      'ScriptManager1'      => 'updModelo|ddlModelo',
-      '__ASYNCPOST'         => 'true',
-      '__EVENTARGUMENT'     => '',
-      '__EVENTTARGET'       => 'ddlModelo',
-      '__EVENTVALIDATION'   => $event_validation,
-      '__LASTFOCUS'         => '',
-      '__VIEWSTATE'         => $viewstate,
-      'ddlAnoValor'         => '0',
-      'ddlMarca'            => $kv->{ marca_id },
-      'ddlModelo'           => $kv->{ modelo_id },
-      'ddlTabelaReferencia' => '154',
-      'tctCodFipe'          => '',
-    ];
+    my $form = $self->_form( {
+        script_manager => 'updModelo|ddlModelo',
+        event_target   =>  'ddlModelo',
+        event_validation=> $event_validation,
+        viewstate       => $viewstate,
+        marca           => $kv->{ marca_id },
+        modelo          => $kv->{ modelo_id },
+    } );
     $self->prepend( busca_modelo => '', {
       passed_key_values => $kv,
       request => [
         'POST',
         $self->robot->reader->passed_key_values->{ referer },
         {
-          headers => {
-            'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Encoding' => 'gzip, deflate',
-            'Accept-Language' => 'en-US,en;q=0.5',
-            'Cache-Control'   => 'no-cache',
-            'Connection'      => 'keep-alive',
-            'Content-Length'  => length( POST('url...', [], Content => $form)->content ),
-            'Content-Type'    => 'application/x-www-form-urlencoded; charset=utf-8',
-            'DNT'             => '1',
-            'Host'            => 'www.fipe.org.br',
-            'Pragma'          => 'no-cache',
-            'Referer'         => $self->robot->reader->passed_key_values->{ referer },
-            'User-Agent'      => 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:20.0) Gecko/20100101 Firefox/20.0',
-            'X-MicrosoftAjax' => 'Delta=true',
-          },
+          headers => $self->_headers( $self->robot->reader->passed_key_values->{ referer } , $form ),
           content => POST( 'url...', [], Content => $form )->content,
         }
       ]
@@ -170,7 +156,6 @@ sub busca_marca {
 
 sub busca_modelo {
   my ( $self ) = @_; 
-# warn $self->robot->useragent->content;
   my $anos = $self->tree->findnodes( '//select[@name="ddlAnoValor"]/option' );
   foreach my $ano ( $anos->get_nodelist ) {
     my $kv = {};
@@ -182,38 +167,19 @@ sub busca_modelo {
     $kv->{ marca }      = $self->robot->reader->passed_key_values->{ marca };
     $kv->{ tipo }       = $self->robot->reader->passed_key_values->{ tipo };
     $kv->{ referer }    = $self->robot->reader->passed_key_values->{ referer };
-#   warn p $kv;
     next unless $ano->as_text !~ m/selecione/ig;
 
     my ( $captura1, $viewstate )         = $self->robot->useragent->content =~ m/hiddenField\|__EVENTTARGET(.*)__VIEWSTATE\|([^\|]+)\|/g;
     my ( $captura_1, $event_validation ) = $self->robot->useragent->content =~ m/hiddenField\|__EVENTTARGET(.*)__EVENTVALIDATION\|([^\|]+)\|/g;
-   #$self->viewstate( $viewstate );
-   #$self->eventvalidation( $event_validation );
-#   warn $self->robot->reader->passed_key_values->{ modelo };
-#   warn $self->robot->reader->passed_key_values->{ marca };
-#   warn $self->robot->reader->passed_key_values->{ ano };
-# warn p $kv;
-    my $form = [
-      'ScriptManager1'      => 'updAnoValor|ddlAnoValor',
-      '__ASYNCPOST'         => 'true',
-      '__EVENTARGUMENT'     => '',
-      '__EVENTTARGET'       => 'ddlAnoValor',
-      '__EVENTVALIDATION'   => $event_validation,
-      '__LASTFOCUS'         => '',
-      '__VIEWSTATE'         => $viewstate,
-      'ddlAnoValor'         => $kv->{ ano_id },
-      'ddlMarca'            => $kv->{ marca_id },
-      'ddlModelo'           => $kv->{ modelo_id },
-      'ddlTabelaReferencia' => '154',
-      'tctCodFipe'          => '',
-    ];
-#   warn $kv->{ ano };
-#   warn $kv->{ marca };
-#   warn $kv->{ modelo };
-#   warn $kv->{ ano_id };
-#   warn $kv->{ marca_id };
-#   warn $kv->{ modelo_id };
-
+    my $form = $self->_form( {
+        script_manager => 'updAnoValor|ddlAnoValor',
+        event_target   =>  'ddlAnoValor',
+        event_validation=> $event_validation,
+        viewstate       => $viewstate,
+        marca           => $kv->{ marca_id },
+        modelo          => $kv->{ modelo_id },
+        ano             => $kv->{ ano_id },
+    } );
 
     $self->prepend( busca_ano => '', {
       passed_key_values => $kv,
@@ -221,21 +187,7 @@ sub busca_modelo {
         'POST',
         $self->robot->reader->passed_key_values->{ referer },
         {
-          headers => {
-            'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Encoding' => 'gzip, deflate',
-            'Accept-Language' => 'en-US,en;q=0.5',
-            'Cache-Control'   => 'no-cache',
-            'Connection'      => 'keep-alive',
-            'Content-Length'  => length( POST('url...', [], Content => $form)->content ),
-            'Content-Type'    => 'application/x-www-form-urlencoded; charset=utf-8',
-            'DNT'             => '1',
-            'Host'            => 'www.fipe.org.br',
-            'Pragma'          => 'no-cache',
-            'Referer'         => $self->robot->reader->passed_key_values->{ referer },
-            'User-Agent'      => 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:20.0) Gecko/20100101 Firefox/20.0',
-            'X-MicrosoftAjax' => 'Delta=true',
-          },
+          headers => $self->_headers( $self->robot->reader->passed_key_values->{ referer } , $form ),
           content => POST( 'url...', [], Content => $form )->content,
         }
       ]
@@ -245,9 +197,7 @@ sub busca_modelo {
 
 sub busca_ano {
   my ( $self ) = @_; 
-# warn p $self->robot->useragent->content;
   my $item = {};
-# warn p $self->robot->reader->passed_key_values;
   $item->{ mes_referencia }   = $self->tree->findvalue('//span[@id="lblReferencia"]') ;
   $item->{ cod_fipe }         = $self->tree->findvalue('//span[@id="lblCodFipe"]');
   $item->{ marca }            = $self->tree->findvalue('//span[@id="lblMarca"]');
@@ -259,8 +209,6 @@ sub busca_ano {
   warn p $item;
 
   push( @{$self->veiculos}, $item );
-    
-# warn p $self->robot->queue->engine->url_list;
 }
 
 sub on_link {
