@@ -8,3 +8,9 @@ Descricao
 
 Esta é a primeira versão do WWW::Tabela::Fipe, e para a primeira versão só baixa dados sobre motos.
 Em breve será atualizado para baixar os dados completos das áreas de Carros+Caminhões+Motos.
+
+Modo de usar
+
+Ajuste o comando execute.sh de acordo com seu ambiente.. e execute conforme esse arquivo... ou se preferir, instale o HTML::Robot::Scapper e apenas execute o fipe.pl
+
+
