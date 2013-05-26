@@ -8,38 +8,62 @@ use HTTP::Request::Common qw(POST);
 
 has [ qw/marcas viewstate eventvalidation/ ] => ( is => 'rw' );
 
+has veiculos => ( is => 'rw' , default => sub { return []; });
+has referer => ( is => 'rw' );
+
 sub start {
     my ( $self ) = @_;
 }
 
 has startpage => (
     is      => 'rw',
-    default => sub { return 'http://www.fipe.org.br/web/indices/veiculos/default.aspx?azxp=1&v=m&p=52' },
+    default => sub {
+        return [
+          { 
+            tipo => 'moto',
+            url  => 'http://www.fipe.org.br/web/indices/veiculos/default.aspx?azxp=1&v=m&p=52' 
+          },
+          { 
+            tipo => 'carro', 
+            url  => 'http://www.fipe.org.br/web/indices/veiculos/default.aspx?p=51' 
+          },
+          { 
+            tipo => 'caminhao',
+            url  => 'http://www.fipe.org.br/web/indices/veiculos/default.aspx?v=c&p=53' 
+          },
+        ] 
+    },
 );
 
 sub on_start {
   my ( $self ) = @_;
-  $self->append( search => $self->startpage );
+  foreach my $item ( @{ $self->startpage } ) {
+    $self->append( search => $item->{ url }, {
+        passed_key_values => {
+            tipo    => $item->{ tipo },
+            referer => $item->{ url },
+        }
+    } );
+  }
 }
 
 sub search {
   my ( $self ) = @_;
-  warn $self->robot->useragent->content_type;
-  my $marcas = $self->tree->findnodes( '//select[@name="ddlMarca"]/option' );
-  my $event_stuff = {};
-  $event_stuff->{ __VIEWSTATE }       = $self->tree->findnodes( '//form[@id="form1"]//input[@id="__VIEWSTATE"]' )->get_node->attr('value');
-  $event_stuff->{ __EVENTVALIDATION } = $self->tree->findnodes( '//form[@id="form1"]//input[@id="__EVENTVALIDATION"]' )->get_node->attr('value');
+# warn $self->robot->useragent->content_type;
+  my $marcas           = $self->tree->findnodes( '//select[@name="ddlMarca"]/option' );
+  my $viewstate        = $self->tree->findnodes( '//form[@id="form1"]//input[@id="__VIEWSTATE"]' )->get_node->attr('value');
+  my $event_validation = $self->tree->findnodes( '//form[@id="form1"]//input[@id="__EVENTVALIDATION"]' )->get_node->attr('value');
   foreach my $marca ( $marcas->get_nodelist ) {
-    warn $marca->attr( 'value' );
-    warn $marca->as_text;
+#   warn $marca->attr( 'value' );
+#   warn $marca->as_text;
     my $form = [
       ScriptManager1      => 'UdtMarca|ddlMarca',
       __ASYNCPOST         => 'true',
       __EVENTARGUMENT     => '',
       __EVENTTARGET       => 'ddlMarca',
-      __EVENTVALIDATION   => $event_stuff->{ __EVENTVALIDATION },
+      __EVENTVALIDATION   => $event_validation,
       __LASTFOCUS         => '',
-      __VIEWSTATE         => $event_stuff->{ __VIEWSTATE },
+      __VIEWSTATE         => $viewstate,
       ddlAnoValor         => 0,
       ddlMarca            => $marca->attr( 'value' ),
       ddlModelo           => 0,
@@ -50,10 +74,12 @@ sub search {
       passed_key_values => {
           marca     => $marca->as_text,
           marca_id  => $marca->attr( 'value' ),
+          tipo      => $self->robot->reader->passed_key_values->{ tipo },
+          referer   => $self->robot->reader->passed_key_values->{referer },
       },
       request => [
         'POST',
-        'http://www.fipe.org.br/web/indices/veiculos/default.aspx?azxp=1&azxp=1%2c+1&v=m&p=52',
+        $self->robot->reader->passed_key_values->{ referer },
         {
           headers => {
             'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -66,7 +92,7 @@ sub search {
             'DNT'             => '1',
             'Host'            => 'www.fipe.org.br',
             'Pragma'          => 'no-cache',
-            'Referer'         => 'http://www.fipe.org.br/web/indices/veiculos/default.aspx?azxp=1&azxp=1%2C+1&v=m&p=52',
+            'Referer'         => $self->robot->reader->passed_key_values->{ referer },
             'User-Agent'      => 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:20.0) Gecko/20100101 Firefox/20.0',
             'X-MicrosoftAjax' => 'Delta=true',
           },
@@ -82,8 +108,8 @@ sub busca_marca {
 # warn $self->robot->useragent->content_type;
   my ( $captura1, $viewstate )         = $self->robot->useragent->content =~ m/hiddenField\|__EVENTTARGET(.+)__VIEWSTATE\|([^\|]+)\|/g;
   my ( $captura_1, $event_validation ) = $self->robot->useragent->content =~ m/hiddenField\|__EVENTTARGET(.+)__EVENTVALIDATION\|([^\|]+)\|/g;
-  $self->viewstate( $viewstate );
-  $self->eventvalidation( $event_validation );
+# $self->viewstate( $viewstate );
+# $self->eventvalidation( $event_validation );
 # warn p $self->robot->useragent->request_headers;
 # warn p $self->robot->useragent->engine->ua;
   my $modelos = $self->tree->findnodes( '//select[@name="ddlModelo"]/option' );
@@ -96,15 +122,18 @@ sub busca_marca {
     $kv->{ modelo }     = $modelo->as_text;
     $kv->{ marca_id }   = $self->robot->reader->passed_key_values->{ marca_id };
     $kv->{ marca }      = $self->robot->reader->passed_key_values->{ marca };
+    $kv->{ tipo }       = $self->robot->reader->passed_key_values->{ tipo };
+    $kv->{ referer }    = $self->robot->reader->passed_key_values->{ referer };
+#   warn p $kv;
 #   warn $self->robot->reader->passed_key_values->{ marca };
     my $form = [
       'ScriptManager1'      => 'updModelo|ddlModelo',
       '__ASYNCPOST'         => 'true',
       '__EVENTARGUMENT'     => '',
       '__EVENTTARGET'       => 'ddlModelo',
-      '__EVENTVALIDATION'   => $self->eventvalidation,
+      '__EVENTVALIDATION'   => $event_validation,
       '__LASTFOCUS'         => '',
-      '__VIEWSTATE'         => $self->viewstate,
+      '__VIEWSTATE'         => $viewstate,
       'ddlAnoValor'         => '0',
       'ddlMarca'            => $kv->{ marca_id },
       'ddlModelo'           => $kv->{ modelo_id },
@@ -115,7 +144,7 @@ sub busca_marca {
       passed_key_values => $kv,
       request => [
         'POST',
-        'http://www.fipe.org.br/web/indices/veiculos/default.aspx?azxp=1&azxp=1%2c+1&v=m&p=52',
+        $self->robot->reader->passed_key_values->{ referer },
         {
           headers => {
             'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -128,7 +157,7 @@ sub busca_marca {
             'DNT'             => '1',
             'Host'            => 'www.fipe.org.br',
             'Pragma'          => 'no-cache',
-            'Referer'         => 'http://www.fipe.org.br/web/indices/veiculos/default.aspx?azxp=1&azxp=1%2C+1&v=m&p=52',
+            'Referer'         => $self->robot->reader->passed_key_values->{ referer },
             'User-Agent'      => 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:20.0) Gecko/20100101 Firefox/20.0',
             'X-MicrosoftAjax' => 'Delta=true',
           },
@@ -141,7 +170,7 @@ sub busca_marca {
 
 sub busca_modelo {
   my ( $self ) = @_; 
-# warn $self->robot->useragent->content_type;
+# warn $self->robot->useragent->content;
   my $anos = $self->tree->findnodes( '//select[@name="ddlAnoValor"]/option' );
   foreach my $ano ( $anos->get_nodelist ) {
     my $kv = {};
@@ -151,11 +180,15 @@ sub busca_modelo {
     $kv->{ modelo }     = $self->robot->reader->passed_key_values->{ modelo };
     $kv->{ marca_id }   = $self->robot->reader->passed_key_values->{ marca_id };
     $kv->{ marca }      = $self->robot->reader->passed_key_values->{ marca };
+    $kv->{ tipo }       = $self->robot->reader->passed_key_values->{ tipo };
+    $kv->{ referer }    = $self->robot->reader->passed_key_values->{ referer };
+#   warn p $kv;
     next unless $ano->as_text !~ m/selecione/ig;
+
     my ( $captura1, $viewstate )         = $self->robot->useragent->content =~ m/hiddenField\|__EVENTTARGET(.*)__VIEWSTATE\|([^\|]+)\|/g;
     my ( $captura_1, $event_validation ) = $self->robot->useragent->content =~ m/hiddenField\|__EVENTTARGET(.*)__EVENTVALIDATION\|([^\|]+)\|/g;
-  $self->viewstate( $viewstate );
-  $self->eventvalidation( $event_validation );
+   #$self->viewstate( $viewstate );
+   #$self->eventvalidation( $event_validation );
 #   warn $self->robot->reader->passed_key_values->{ modelo };
 #   warn $self->robot->reader->passed_key_values->{ marca };
 #   warn $self->robot->reader->passed_key_values->{ ano };
@@ -165,9 +198,9 @@ sub busca_modelo {
       '__ASYNCPOST'         => 'true',
       '__EVENTARGUMENT'     => '',
       '__EVENTTARGET'       => 'ddlAnoValor',
-      '__EVENTVALIDATION'   => $self->eventvalidation,
+      '__EVENTVALIDATION'   => $event_validation,
       '__LASTFOCUS'         => '',
-      '__VIEWSTATE'         => $self->viewstate,
+      '__VIEWSTATE'         => $viewstate,
       'ddlAnoValor'         => $kv->{ ano_id },
       'ddlMarca'            => $kv->{ marca_id },
       'ddlModelo'           => $kv->{ modelo_id },
@@ -183,10 +216,10 @@ sub busca_modelo {
 
 
     $self->prepend( busca_ano => '', {
-      passed_key_values => $self->robot->reader->passed_key_values,
+      passed_key_values => $kv,
       request => [
         'POST',
-        'http://www.fipe.org.br/web/indices/veiculos/default.aspx?azxp=1%2c+1&v=m&p=52',
+        $self->robot->reader->passed_key_values->{ referer },
         {
           headers => {
             'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -199,7 +232,7 @@ sub busca_modelo {
             'DNT'             => '1',
             'Host'            => 'www.fipe.org.br',
             'Pragma'          => 'no-cache',
-            'Referer'         => 'http://www.fipe.org.br/web/indices/veiculos/default.aspx?azxp=1&azxp=1%2C+1&v=m&p=52',
+            'Referer'         => $self->robot->reader->passed_key_values->{ referer },
             'User-Agent'      => 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:20.0) Gecko/20100101 Firefox/20.0',
             'X-MicrosoftAjax' => 'Delta=true',
           },
@@ -212,9 +245,9 @@ sub busca_modelo {
 
 sub busca_ano {
   my ( $self ) = @_; 
-  warn p $self->robot->useragent->content;
+# warn p $self->robot->useragent->content;
   my $item = {};
-  warn p $self->robot->reader->passed_key_values;
+# warn p $self->robot->reader->passed_key_values;
   $item->{ mes_referencia }   = $self->tree->findvalue('//span[@id="lblReferencia"]') ;
   $item->{ cod_fipe }         = $self->tree->findvalue('//span[@id="lblCodFipe"]');
   $item->{ marca }            = $self->tree->findvalue('//span[@id="lblMarca"]');
@@ -222,11 +255,11 @@ sub busca_ano {
   $item->{ ano }              = $self->tree->findvalue('//span[@id="lblAnoModelo"]');
   $item->{ preco }            = $self->tree->findvalue('//span[@id="lblValor"]');
   $item->{ data }             = $self->tree->findvalue('//span[@id="lblData"]');
-
-  warn $self->robot->writer->write( $item );
-    
+  $item->{ tipo }             = $self->robot->reader->passed_key_values->{ tipo } ;
   warn p $item;
-sleep 1;
+
+  push( @{$self->veiculos}, $item );
+    
 # warn p $self->robot->queue->engine->url_list;
 }
 
@@ -236,6 +269,8 @@ sub on_link {
 
 sub on_finish {
     my ( $self ) = @_; 
+    warn "Terminou.... exportando dados.........";
+    $self->robot->writer->write( $self->veiculos );
 }
 
 =head1 NAME

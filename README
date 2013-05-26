@@ -6,8 +6,8 @@ Robo automatizado para obter os dados atualizados da tabela fipe.
 
 Descricao
 
-Esta é a primeira versão do WWW::Tabela::Fipe, e para a primeira versão só baixa dados sobre motos.
-Em breve será atualizado para baixar os dados completos das áreas de Carros+Caminhões+Motos.
+Esta é a primeira versão do WWW::Tabela::Fipe baixa todos os dados de Carros+Caminhões+Motos e gera um json.
+Se quiser salvar em outro formato é só alterar a chamada de escrita no WWW::Tabela::FipeWrite.
 
 Modo de usar
 
