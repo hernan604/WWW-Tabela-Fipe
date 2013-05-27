@@ -11,8 +11,15 @@
       tr:hover {
         background: #f3f2f0;
       }
-      tr td {
-        border-right: 1px solid #f3f2f0;
+      tr td, tr th  {
+        border-right: 1px solid #000;
+        text-align: left;
+      }
+
+      tr th {
+        background: #999;
+        color: #FFF;
+          
       }
     </style>
     <script>
@@ -49,7 +56,12 @@
             coluna = colunas[j];
             tabela_row.append( $( '<td></td>' ).html( ( coluna != 'preco' ) ? item[ coluna ] : 'R$ ' + item[ coluna ].formatMoney(2,',','.') ) );
           }
-          tabela_row.append( $( '<td></td>' ).html( $( '<a></a>' ).html( 'imagem' ).attr( 'target', '_BLANK').attr( 'href', 'https://www.google.com.br/search?hl=en&site=imghp&tbm=isch&source=hp&q='+ encodeURI( item['marca']+" "+item['modelo']+" "+item['ano'] ) + '&oq=' + encodeURI( item['marca']+" "+item['modelo'] ) ) ) );
+          tabela_row.append( $( '<td></td>' ).html( $( '<a></a>' ).html( 'imagem' ).attr( 'target', '_BLANK').attr( 'href', 'https://www.google.com.br/search?hl=en&site=imghp&tbm=isch&source=hp&q='+ encodeURI( item['marca']+" "+item['modelo']+" "+item['ano'] ) + '&oq=' + encodeURI( item['marca']+" "+item['modelo'] ) ) ).click( function ( ev ) {
+console.log( $( ev.currentTarget ) );
+console.log( 'current_target' );
+//          $( '#fotos-iframe' ).remove();
+//   google bloqueia         $( ev.currentTarget).closest( 'tr' ).after( $( '<tr id="fotos-iframe"><td colspan="9"><iframe src="https://www.google.com.br/search?hl=en&site=imghp&tbm=isch&source=hp&q='+ encodeURI( item['marca']+" "+item['modelo']+" "+item['ano'] ) + '&oq=' + encodeURI( item['marca']+" "+item['modelo'] ) + '" height="400"></iframe></td><tr>' ) ); 
+          } ) );
           tabela_body.append(tabela_row);
           }
         }
@@ -143,6 +155,8 @@
           fipe[i][ 'preco' ] = fipe[i][ 'preco' ].replace('R$ ', ''  );
           fipe[i][ 'preco' ] = fipe[i][ 'preco' ].replace('.', ''  );
           fipe[i][ 'preco' ] = parseInt(fipe[i][ 'preco' ]);
+
+          fipe[i][ 'marca' ] = fipe[i][ 'marca' ].toLowerCase();
         }
         _desenhar_filtro( fipe , cols ); //primeiro
         _desenhar_tabela( fipe , cols ); //segundo
