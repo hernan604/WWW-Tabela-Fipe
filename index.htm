@@ -1,0 +1,160 @@
+<html>
+
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js" ></script>
+    <script src="./fipe.json"></script>
+  </head>
+
+  <body>
+    <style>
+      tr:hover {
+        background: #f3f2f0;
+      }
+      tr td {
+        border-right: 1px solid #f3f2f0;
+      }
+    </style>
+    <script>
+
+      cols = [
+        'tipo',
+        'marca',
+        'modelo',
+        'ano',
+        'preco',
+        'mes_referencia',
+        'data',
+        'cod_fipe',
+      ];
+
+      _desenhar_tabela  = function ( dados, colunas ) {
+        $( '#tabela-fipe' ).html('');
+        contador        = 0;
+        tabela          = $( '<table></table>' );
+        tabela_headers  = $( '<thead></thead>' );
+        header_row      = $( '<tr></tr>' );
+        tabela_headers.append( header_row );
+        for ( i in colunas ) {
+          coluna      = colunas[i];
+          col_header  = $( '<th></th>' ).html( coluna ).addClass( coluna );
+          $( header_row ).append( col_header );
+        }
+        tabela_body = $( '<tbody></tbody>' );
+        for ( i in dados ) {
+          item = dados[i];
+          if ( item['tipo'] == $( '#tipo-visivel' ).val() ) {
+          tabela_row = $( '<tr></tr>' );
+          for ( j in colunas ) {
+            coluna = colunas[j];
+            tabela_row.append( $( '<td></td>' ).html( ( coluna != 'preco' ) ? item[ coluna ] : 'R$ ' + item[ coluna ].formatMoney(2,',','.') ) );
+          }
+          tabela_row.append( $( '<td></td>' ).html( $( '<a></a>' ).html( 'imagem' ).attr( 'target', '_BLANK').attr( 'href', 'https://www.google.com.br/search?hl=en&site=imghp&tbm=isch&source=hp&q='+ encodeURI( item['marca']+" "+item['modelo']+" "+item['ano'] ) + '&oq=' + encodeURI( item['marca']+" "+item['modelo'] ) ) ) );
+          tabela_body.append(tabela_row);
+          }
+        }
+        tabela.append( tabela_headers ).append( tabela_body );
+        $( 'body #tabela-fipe' ).html( tabela );
+      }
+
+      _desenhar_filtro = function( fipe , colunas ) {
+        filtro = $( '#tabela-filtro' );
+        filtro.append( $( '<select id="tipo-visivel"><option name="moto" value="moto">Ver Moto</option><option name="carro" value="carro">Ver Carros</option><option name="caminhao" value="caminhao">Ver Caminhoes</option></select>' ) );
+        for ( i in colunas ) {
+          coluna = colunas[i];
+          select_sort = $( '<select class="sort"><option name="" value="">selecione</option><option name="asc" value="asc">asc</option><option name="desc" value="desc">desc</option></select>' );
+          options =     $( '<select class="options"><option name="" value="">selecione</option></select>' );
+          for ( j in colunas ) {
+            colunaX = colunas[j];
+            options.append( $( '<option></option>').attr( 'value' , colunaX ).attr( 'name' , colunaX ).html( colunaX ) );
+          }
+          filtro.append( $( '<div></div>' ).attr( 'id', 'filtro-' + i ).append( options ).append( select_sort ) );
+        }
+        btn_filtrar = $( '<input type="submit" value="Filtrar"></input' );
+        filtro.append( btn_filtrar );
+        btn_filtrar.click( function ( ev ) {
+          console.log( this );
+          ev.preventDefault( );
+
+          criterios = [];
+          $.each( $( '#tabela-filtro div[id^="filtro-"]' ) , function(i,item){
+            console.log( item );
+
+            colname   = $( item ).find( 'select.options' ).val();
+            direction = $( item ).find( 'select.sort' ).val();
+
+
+            if ( colname != '' && direction != '' ) {
+              console.log( colname + direction);
+              criterios.push( (direction == 'desc') ?  [  colname,  direction ]  : [ colname, direction  ] );
+            }
+
+          });
+          if ( criterios.length > 0 )  {
+            fipe.sort(dynamicSortMultiple( criterios ));
+            _desenhar_tabela( fipe, cols );
+          } else {
+            _desenhar_tabela( fipe, cols );
+          }
+
+        } );
+      }
+
+      dynamicSort = function (property) {
+          order = property[1];
+          field = property[0];
+          var sortOrder = 1;
+          if( order == "desc" ) {
+              sortOrder = -1;
+          }
+          return function (a,b) {
+              var result = (a[field] < b[field]) ? -1 : (a[field] > b[field]) ? 1 : 0;
+              return result * sortOrder;
+          }
+      }
+
+      dynamicSortMultiple = function () {
+          var props = arguments[0];
+          fase = this;
+          return function (obj1, obj2) {
+              var i = 0, result = 0, numberOfProperties = props.length;
+              while(result === 0 && i < numberOfProperties) {
+                  result = fase.dynamicSort(props[i])(obj1, obj2);
+                  i++;
+              }
+              return result;
+          }
+      }
+
+      Number.prototype.formatMoney = function(decPlaces, thouSeparator, decSeparator) {
+          var n = this,
+          decPlaces = isNaN(decPlaces = Math.abs(decPlaces)) ? 2 : decPlaces,
+          decSeparator = decSeparator == undefined ? "." : decSeparator,
+          thouSeparator = thouSeparator == undefined ? "," : thouSeparator,
+          sign = n < 0 ? "-" : "",
+          i = parseInt(n = Math.abs(+n || 0).toFixed(decPlaces)) + "",
+          j = (j = i.length) > 3 ? j % 3 : 0;
+          return sign + (j ? i.substr(0, j) + thouSeparator : "") + i.substr(j).replace(/(\d{3})(?=\d)/g, "$1" + thouSeparator) + (decPlaces ? decSeparator + Math.abs(n - i).toFixed(decPlaces).slice(2) : "");
+      }
+
+
+      $(document).ready(function () {
+        for ( i in fipe ) {
+          fipe[i][ 'preco' ] = fipe[i][ 'preco' ].replace('R$ ', ''  );
+          fipe[i][ 'preco' ] = fipe[i][ 'preco' ].replace('.', ''  );
+          fipe[i][ 'preco' ] = parseInt(fipe[i][ 'preco' ]);
+        }
+        _desenhar_filtro( fipe , cols ); //primeiro
+        _desenhar_tabela( fipe , cols ); //segundo
+      });
+    </script>
+    <h1>Tabela Fipe - WWW::Tabela::Fipe</h1>
+    <div>
+      <h2>Filtros:</h2>
+      <form id="tabela-filtro"></form>
+    </div>
+    <div id="tabela-fipe"></div>
+
+  </body>
+
+</html>
