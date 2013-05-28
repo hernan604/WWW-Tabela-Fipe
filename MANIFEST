@@ -1,8 +1,9 @@
+Changes
+lib/WWW/Tabela/Fipe.pm
+lib/WWW/Tabela/FipeWrite.pm
+LICENSE
+Makefile.PL
 MANIFEST
 README
-LICENSE
-Todo
-Changes
-Makefile.PL
-lib/WWW/Tabela/Fipe.pm
 t/001_load.t
+Todo

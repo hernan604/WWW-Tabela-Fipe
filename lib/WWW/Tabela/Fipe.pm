@@ -6,6 +6,8 @@ use utf8;
 use HTML::Entities;
 use HTTP::Request::Common qw(POST);
 
+our $VERSION = 0.001;
+
 has [ qw/marcas viewstate eventvalidation/ ] => ( is => 'rw' );
 
 has veiculos => ( is => 'rw' , default => sub { return []; });
@@ -227,30 +229,106 @@ WWW::Tabela::Fipe - Baixe a tabela fipe completa mantenha-se atualizado
 
 =head1 SYNOPSIS
 
-  use WWW::Tabela::Fipe;
-  blah blah blah
+salve o trecho abaixo em um arquivo ex:
+
+    vim fipe.pl
+
+e coloque esse conteudo:
+
+    package  WWW::Tabela::Fipe::Parser;
+    use Moo;
+
+    with('HTML::Robot::Scrapper::Parser::HTML::TreeBuilder::XPath'); 
+    with('HTML::Robot::Scrapper::Parser::XML::XPath'); 
+
+    sub content_types {
+        my ( $self ) = @_;
+        return {
+            'text/html' => [
+                {
+                    parse_method => 'parse_xpath',
+                    description => q{
+                        The method above 'parse_xpath' is inside class:
+                        HTML::Robot::Scrapper::Parser::HTML::TreeBuilder::XPath
+                    },
+                }
+            ],
+            'text/plain' => [
+                {
+                    parse_method => 'parse_xpath',
+                    description => q{
+                        esse site da fipe responde em text/plain e eu preciso parsear esse content type.
+                        por isso criei esta classe e passei ela como parametro, sobreescrevendo a classe 
+                        HTML::Robot::Scrapper::Parser::Default
+                    },
+                }
+            ],
+            'text/xml' => [
+                {
+                    parse_method => 'parse_xml'
+                },
+            ],
+        };
+    }
+
+    1;
+
+    package FIPE;
+
+    use HTML::Robot::Scrapper;
+    use CHI;
+    use HTTP::Tiny;
+    use HTTP::CookieJar;
+
+    my $robot = HTML::Robot::Scrapper->new (
+        reader    => {                                                       # REQ
+            class => 'WWW::Tabela::Fipe',
+        },
+        writer    => {class => 'WWW::Tabela::FipeWrite',}, #REQ
+        benchmark => {class => 'Default'},
+    #   cache     => {
+    #       class => 'Default',
+    #       args  => {
+    #           is_active => 0,
+    #           engine => CHI->new(
+    #                   driver => 'BerkeleyDB',
+    #                   root_dir => "/home/catalyst/WWW-Tabela-Fipe/cache/",
+    #           ),
+    #       },
+    #   },
+        log       => {class => 'Default'},
+        parser    => {class => 'WWW::Tabela::Fipe::Parser'},  #custom para tb fipe. pois eles respondem com Content type text/plain
+        queue     => {class => 'Default'},
+        useragent => {
+            class => 'Default',
+            args  => {
+                ua => HTTP::Tiny->new( cookie_jar => HTTP::CookieJar->new),
+            }
+        },
+        encoding  => {class => 'Default'},
+        instance  => {class => 'Default'},
+    );
+
+    $robot->start();
+
+depois, é só executar, ex:
+
+    perl -I/home/catalyst/HTML-Robot-Scraper/lib/ -I./lib/ fipe.pl
+
+o comando acima vai usar uma versao local do HTML-Robot-Scrapper.... se vc tiver instalado vc pode executar assim:
+
+    perl fipe.pl
+
+espero que gostem
 
 
 =head1 DESCRIPTION
 
-Stub documentation for this module was created by ExtUtils::ModuleMaker.
-It looks like the author of the extension was negligent enough
-to leave the stub unedited.
+    Este módulo baixa a tabela FIPE atualizada para motos caminhoes e carros.  Direto do site da FIPE.
+    Fonte: fipe.org.br
 
-Blah blah blah.
-
-
-=head1 USAGE
-
-
-
-=head1 BUGS
-
-
-
-=head1 SUPPORT
-
-
+    Downloads the FIPE table updated directly from fipe source.
+    DataSource: fipe.org.br
 
 =head1 AUTHOR
 
