@@ -21,14 +21,14 @@ has startpage => (
     is      => 'rw',
     default => sub {
         return [
-#         { 
-#           tipo => 'moto',
-#           url  => 'http://www.fipe.org.br/web/indices/veiculos/default.aspx?azxp=1&v=m&p=52' 
-#         },
-#         { 
-#           tipo => 'carro', 
-#           url  => 'http://www.fipe.org.br/web/indices/veiculos/default.aspx?p=51' 
-#         },
+          { 
+            tipo => 'moto',
+            url  => 'http://www.fipe.org.br/web/indices/veiculos/default.aspx?azxp=1&v=m&p=52' 
+          },
+          { 
+            tipo => 'carro', 
+            url  => 'http://www.fipe.org.br/web/indices/veiculos/default.aspx?p=51' 
+          },
           { 
             tipo => 'caminhao',
             url  => 'http://www.fipe.org.br/web/indices/veiculos/default.aspx?v=c&p=53' 
@@ -93,7 +93,6 @@ sub search {
   my $event_validation = $self->tree->findnodes( '//form[@id="form1"]//input[@id="__EVENTVALIDATION"]' )->get_node->attr('value');
   my $tabela_referencia = $self->tree->findnodes( '//select[@name="ddlTabelaReferencia"]/option[@selected="selected"]' )->get_node->attr( 'value' );
   foreach my $marca ( $marcas->get_nodelist ) {
-  next unless $marca->as_text eq 'HYUNDAI' and $marca->attr( 'value' ) == 181 ;
     my $form = $self->_form( {
         script_manager => 'UdtMarca|ddlMarca',
         event_target   => 'ddlMarca',
