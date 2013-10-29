@@ -134,6 +134,7 @@ sub busca_marca {
     $kv->{ marca }      = $self->robot->reader->passed_key_values->{ marca };
     $kv->{ tipo }       = $self->robot->reader->passed_key_values->{ tipo };
     $kv->{ referer }    = $self->robot->reader->passed_key_values->{ referer };
+    warn p $kv;
     my $form = $self->_form( {
         script_manager => 'updModelo|ddlModelo',
         event_target   =>  'ddlModelo',
@@ -169,6 +170,7 @@ sub busca_modelo {
     $kv->{ marca }      = $self->robot->reader->passed_key_values->{ marca };
     $kv->{ tipo }       = $self->robot->reader->passed_key_values->{ tipo };
     $kv->{ referer }    = $self->robot->reader->passed_key_values->{ referer };
+    warn p $kv;
     next unless $ano->as_text !~ m/selecione/ig;
 
     my ( $captura1, $viewstate )         = $self->robot->useragent->content =~ m/hiddenField\|__EVENTTARGET(.*)__VIEWSTATE\|([^\|]+)\|/g;
