@@ -233,6 +233,8 @@ sub on_finish {
     $self->robot->writer->write( $self->veiculos );
 }
 
+=encoding UTF-8
+
 =head1 NAME
 
 WWW::Tabela::Fipe - Baixe a tabela fipe completa mantenha-se atualizado
