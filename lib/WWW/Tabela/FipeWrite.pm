@@ -1,6 +1,6 @@
 package WWW::Tabela::FipeWrite;
 use JSON::XS;
-use File::Slurp;
+use File::Slurp::Tiny qw( write_file );
 use Moo;
 
 sub write {

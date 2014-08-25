@@ -22,7 +22,7 @@ WriteMakefile(
                      'HTTP::Request::Common'    => 0,
                      'HTML::Robot::Scrapper'    => 0,
                      'Data::Printer'            => 0,
-                     'File::Slurp'              => 0,
+                     'File::Slurp::Tiny'        => 0,
                      'HTTP::CookieJar'          => 0,
                      'JSON::XS'                 => 0,
                     },
