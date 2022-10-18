@@ -9,6 +9,14 @@ Descrição
 Esta é a primeira versão do WWW::Tabela::Fipe baixa todos os dados de Carros+Caminhões+Motos e gera um json.
 Se quiser salvar em outro formato é só alterar a chamada de escrita no WWW::Tabela::FipeWrite.
 
+Dependências
+perl: https://www.perl.org/get.html
+módulos:
+
+```perl
+cpan install Moo HTML::Robot::Scrapper HTTP::CookieJar JSON::XS File::Slurp WWW::Tabela::Fipe
+```
+
 Modo de usar
 
 Ajuste o comando execute.sh de acordo com seu ambiente.. e execute conforme esse arquivo... ou se preferir, instale o HTML::Robot::Scapper e apenas execute o fipe.pl
